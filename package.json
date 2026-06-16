@@ -5,8 +5,9 @@
   "private": true,
   "author": "",
   "license": "MIT",
+  "packageManager": "pnpm@10.10.0",
   "scripts": {
-    "dev": "turbo run dev --parallel",
+    "dev": "turbo run dev",
     "build": "turbo run build",
     "start": "turbo run start",
     "test": "turbo run test",
