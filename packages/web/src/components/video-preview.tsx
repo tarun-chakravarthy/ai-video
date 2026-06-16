@@ -29,14 +29,22 @@ export function VideoPreview({ videoUrl, onTimeUpdate, onEnded }: {
       }
     };
 
+    const handleLoadedMetadata = () => {
+      if (onTimeUpdate) {
+        onTimeUpdate(video.currentTime, video.duration);
+      }
+    };
+
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('ended', handleEnded);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
 
     return () => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('ended', handleEnded);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
     };
-  }, [onTimeUpdate, onEnded]);
+  }, [videoUrl, onTimeUpdate, onEnded]);
 
   const togglePlay = async () => {
     const video = videoRef.current;
