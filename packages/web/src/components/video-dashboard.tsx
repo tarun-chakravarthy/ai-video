@@ -16,6 +16,7 @@ export function VideoDashboard() {
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
+  const [clips, setClips] = useState<Array<{id: number; start: number; end: number; label: string}>>([]);
 
   // Get active video object
   const activeVideo = videos.find(v => v.id === activeVideoId) || null;
@@ -103,6 +104,17 @@ export function VideoDashboard() {
     }
   }, [activeVideoId, videos]);
 
+  // Reset clips when active video changes
+  useEffect(() => {
+    if (activeVideoId !== null && activeVideo && activeVideo.duration > 0) {
+      // Set to single clip representing the whole video
+      setClips([{ id: 1, start: 0, end: activeVideo.duration, label: "Main Clip" }]);
+    } else {
+      // No active video or invalid duration
+      setClips([]);
+    }
+  }, [activeVideoId, activeVideo]);
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -162,6 +174,8 @@ export function VideoDashboard() {
               onSeek={(time: number) => {
                 setCurrentTime(time);
               }}
+              clips={clips}
+              onClipChange={(newClips) => setClips(newClips)}
             />
           )}
         </div>
@@ -186,6 +200,11 @@ export function VideoDashboard() {
                 videoUrl={activeVideo.url}
                 currentTime={currentTime}
                 duration={activeVideo.duration}
+                onAIAnalysisComplete={async (analyzedClips) => {
+                  // Simulate processing delay for realism
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                  setClips(analyzedClips);
+                }}
               />
               <ExportControls
                 videoUrl={activeVideo.url}
