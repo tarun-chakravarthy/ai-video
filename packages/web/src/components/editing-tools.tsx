@@ -1,5 +1,5 @@
 import { Scissors, Trash2, Zap, Settings, Copy, MoreHorizontal, Clock } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 export function EditingTools({
   videoUrl,
@@ -26,20 +26,24 @@ export function EditingTools({
   const [outPoint, setOutPoint] = useState<number>(0);
   const [isRippleEdit, setIsRippleEdit] = useState<boolean>(false);
 
-  // Sync inPoint/outPoint with selected clip
-  useEffect(() => {
+  // Compute the current clip's in/out points
+  const currentClip = useMemo(() => {
     if (selectedClipId !== null && clips.length > 0) {
-      const clip = clips.find(clip => clip.id === selectedClipId);
-      if (clip) {
-        setInPoint(clip.start);
-        setOutPoint(clip.end);
-        return;
-      }
+      return clips.find(clip => clip.id === selectedClipId);
     }
-    // Reset when no clip selected
-    setInPoint(0);
-    setOutPoint(duration);
+    return null;
   }, [selectedClipId, clips]);
+
+  // Only update state when the selected clip changes (not on every clips update)
+  useEffect(() => {
+    if (currentClip) {
+      setInPoint(currentClip.start);
+      setOutPoint(currentClip.end);
+    } else {
+      setInPoint(0);
+      setOutPoint(duration);
+    }
+  }, [currentClip?.id, duration]);
 
   const handleSplit = () => {
     if (!videoUrl || duration === 0) return;
