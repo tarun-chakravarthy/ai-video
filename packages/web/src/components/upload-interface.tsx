@@ -9,9 +9,11 @@ interface UploadInterfaceProps {
 export function UploadInterface({ onFileUpload, isUploading = false, uploadProgress = 0 }: UploadInterfaceProps) {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length > 0) {
+    // Filter to video files only
+    const videoFiles = files.filter(file => file.type.startsWith('video/'));
+    if (videoFiles.length > 0) {
       // Limit to 5 files maximum
-      const limitedFiles = files.slice(0, 5);
+      const limitedFiles = videoFiles.slice(0, 5);
       await onFileUpload(limitedFiles);
       // Reset input
       e.target.value = '';
@@ -21,9 +23,11 @@ export function UploadInterface({ onFileUpload, isUploading = false, uploadProgr
   const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const files = Array.from(e.dataTransfer.files || []);
-    if (files.length > 0) {
+    // Filter to video files only
+    const videoFiles = files.filter(file => file.type.startsWith('video/'));
+    if (videoFiles.length > 0) {
       // Limit to 5 files maximum
-      const limitedFiles = files.slice(0, 5);
+      const limitedFiles = videoFiles.slice(0, 5);
       await onFileUpload(limitedFiles);
     }
   };
@@ -33,13 +37,21 @@ export function UploadInterface({ onFileUpload, isUploading = false, uploadProgr
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 p-6 sm:p-8">
       <div className="text-center">
-        <UploadIcon className="h-10 w-10 text-gray-400 dark:text-gray-500 mb-4" />
-        <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-2">
+        <UploadIcon className={`
+          h-8 w-8 sm:h-10 w-10
+          text-gray-400 dark:text-gray-500 mb-4
+        `} />
+        <h3 className={`
+          font-semibold text-gray-800 dark:text-gray-100 mb-2
+          text-sm sm:text-lg
+        `}>
           Upload Raw Footage (Max 5 videos)
         </h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className={`
+          text-sm text-gray-500 dark:text-gray-400
+        `}>
           Drag & drop videos here or click to browse
           {isUploading ? (
             <span className="ml-2 animate-pulse">Processing...</span>
@@ -65,7 +77,12 @@ export function UploadInterface({ onFileUpload, isUploading = false, uploadProgr
           />
           <label
             htmlFor="file-input"
-            className="w-full inline-flex justify-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg text-sm hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+            className={`
+              w-full inline-flex justify-center px-4 py-2
+              bg-blue-600 text-white font-medium rounded-lg text-sm
+              sm:text-base
+              hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600
+            `}
           >
             Browse Files
           </label>
@@ -74,11 +91,16 @@ export function UploadInterface({ onFileUpload, isUploading = false, uploadProgr
 
       {/* Upload Progress Bar */}
       {isUploading && uploadProgress > 0 && uploadProgress < 100 && (
-        <div className="mt-4">
-          <div className="w-full h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+        <div className={`
+          mt-4 sm:mt-6
+        `}>
+          <div className="w-full h-2.5 sm:h-3 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
             <div className="h-full bg-blue-500 dark:bg-blue-400" style={{ width: `${uploadProgress}%` }}></div>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-1">
+          <p className={`
+            text-xs text-gray-500 dark:text-gray-400 text-center mt-1
+            sm:text-sm
+          `}>
             Uploading...
           </p>
         </div>
@@ -88,7 +110,7 @@ export function UploadInterface({ onFileUpload, isUploading = false, uploadProgr
       {isUploading && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="text-center text-white">
-            <div className="animate-spin h-8 w-8 mr-3"></div>
+            <div className="animate-spin h-8 w-8 sm:h-10 w-10 mr-3"></div>
             <span>Processing upload...</span>
           </div>
         </div>

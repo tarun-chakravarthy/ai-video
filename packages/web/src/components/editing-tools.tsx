@@ -1,18 +1,45 @@
-import { Scissors, Trash2, Zap, Settings, Copy, MoreHorizontal } from "lucide-react";
-import { useState } from "react";
+import { Scissors, Trash2, Zap, Settings, Copy, MoreHorizontal, Clock } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export function EditingTools({
   videoUrl,
   currentTime,
   duration,
-  onSeek
+  onSeek,
+  clips,
+  onClipChange,
+  selectedClipId,
+  onSelectedClipChange
 }: {
   videoUrl?: string | null;
   currentTime: number;
   duration: number;
-  onSeek: (time: number) => void
+  onSeek: (time: number) => void;
+  clips: Array<{ id: number; start: number; end: number; label: string }>;
+  onClipChange: (clips: Array<{ id: number; start: number; end: number; label: string }>) => void;
+  selectedClipId: number | null;
+  onSelectedClipChange: (id: number | null) => void;
 }) {
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
+  const [goToTime, setGoToTime] = useState<number>(0);
+  const [inPoint, setInPoint] = useState<number>(0);
+  const [outPoint, setOutPoint] = useState<number>(0);
+  const [isRippleEdit, setIsRippleEdit] = useState<boolean>(false);
+
+  // Sync inPoint/outPoint with selected clip
+  useEffect(() => {
+    if (selectedClipId !== null && clips.length > 0) {
+      const clip = clips.find(clip => clip.id === selectedClipId);
+      if (clip) {
+        setInPoint(clip.start);
+        setOutPoint(clip.end);
+      }
+    } else {
+      // Reset when no clip selected
+      setInPoint(0);
+      setOutPoint(duration);
+    }
+  }, [selectedClipId, clips, duration]);
 
   const handleSplit = () => {
     if (!videoUrl || duration === 0) return;
@@ -59,6 +86,86 @@ export function EditingTools({
     setTimeout(() => setSelectedTool(null), 1500);
   };
 
+  const updateClipInPoint = (time: number) => {
+    if (selectedClipId === null) return;
+
+    const clipIndex = clips.findIndex(clip => clip.id === selectedClipId);
+    if (clipIndex === -1) return;
+
+    const clip = clips[clipIndex];
+
+    // Don't allow in point to be >= out point
+    if (time >= clip.end) return;
+
+    const updatedClip = { ...clip, start: time };
+
+    let updatedClips = [...clips];
+    updatedClips[clipIndex] = updatedClip;
+
+    // If ripple edit is enabled, shift subsequent clips
+    if (isRippleEdit) {
+      const timeDiff = time - clip.start; // positive if moved right, negative if moved left
+      if (timeDiff !== 0) {
+        for (let i = clipIndex + 1; i < updatedClips.length; i++) {
+          updatedClips[i] = {
+            ...updatedClips[i],
+            start: updatedClips[i].start + timeDiff,
+            end: updatedClips[i].end + timeDiff
+          };
+        }
+      }
+    }
+
+    onClipChange(updatedClips);
+  };
+
+  const updateClipOutPoint = (time: number) => {
+    if (selectedClipId === null) return;
+
+    const clipIndex = clips.findIndex(clip => clip.id === selectedClipId);
+    if (clipIndex === -1) return;
+
+    const clip = clips[clipIndex];
+
+    // Don't allow out point to be <= in point
+    if (time <= clip.start) return;
+
+    const updatedClip = { ...clip, end: time };
+
+    let updatedClips = [...clips];
+    updatedClips[clipIndex] = updatedClip;
+
+    // If ripple edit is enabled, shift subsequent clips
+    if (isRippleEdit) {
+      const timeDiff = time - clip.end; // positive if moved right, negative if moved left
+      if (timeDiff !== 0) {
+        for (let i = clipIndex + 1; i < updatedClips.length; i++) {
+          updatedClips[i] = {
+            ...updatedClips[i],
+            start: updatedClips[i].start + timeDiff,
+            end: updatedClips[i].end + timeDiff
+          };
+        }
+      }
+    }
+
+    onClipChange(updatedClips);
+  };
+
+  const formatTimeWithFrames = (totalSeconds: number, frameRate: number = 30): string => {
+    const totalFrames = Math.round(totalSeconds * frameRate);
+    const hours = Math.floor(totalFrames / (frameRate * 3600));
+    const minutes = Math.floor((totalFrames % (frameRate * 3600)) / (frameRate * 60));
+    const seconds = Math.floor((totalFrames % (frameRate * 60)) / frameRate);
+    const frames = totalFrames % frameRate;
+    return (
+      `${hours.toString().padStart(2, '0')}:` +
+      `${minutes.toString().padStart(2, '0')}:` +
+      `${seconds.toString().padStart(2, '0')}:` +
+      `${frames.toString().padStart(2, '0')}`
+    );
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
       <div className="flex justify-between items-center mb-4">
@@ -70,7 +177,7 @@ export function EditingTools({
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {/* Primary Editing Controls */}
         <div className="space-y-2">
           <button
@@ -126,32 +233,162 @@ export function EditingTools({
             More Options
           </button>
         </div>
-      </div>
 
-      {/* Duration Display */}
-      {videoUrl && duration > 0 && (
-        <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
-          <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400">
-            <span>Total Duration:</span>
-            <span className="font-medium text-gray-800 dark:text-gray-100">{Math.round(currentTime * 100) / 100}s</span>
-          </div>
-          <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-1">
-            <span>Target Length:</span>
-            <span className="font-medium text-gray-800 dark:text-gray-100">60s - 120s</span>
-          </div>
-          {currentTime > 0 && duration > 0 && (
-            <div className="mt-2">
-              <div className="flex items-center justify-between text-sm">
-                <span>Progress:</span>
-                <span className="font-medium text-gray-800 dark:text-gray-100">${Math.round((currentTime / duration) * 100)}%</span>
-              </div>
-              <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500 dark:bg-blue-400" style={{ width: `${Math.min((currentTime / duration) * 100, 100)}%` }}></div>
+        {/* Precision Controls */}
+        <div className="lg:col-span-3">
+          {videoUrl && duration > 0 && (
+            <div className="space-y-4">
+              <div className="border-t border-gray-200 dark:border-gray-600 pt-4">
+                <div className="flex flex-wrap items-center gap-4">
+                  {/* Go-to Time Input */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Go to:</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max={duration}
+                      step="0.1"
+                      value={Math.round(goToTime * 10) / 10}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val) && val >= 0 && val <= duration) {
+                          setGoToTime(val);
+                          onSeek(val);
+                          // Also update video preview if we had a ref
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const val = parseFloat((e.target as HTMLInputElement).value);
+                          if (!isNaN(val) && val >= 0 && val <= duration) {
+                            setGoToTime(val);
+                            onSeek(val);
+                            // Also update video preview if we had a ref
+                          }
+                        }
+                      }}
+                      className="w-24 px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      placeholder="sec"
+                    >
+                    </input>
+                    <button
+                      onClick={() => {
+                        const val = parseFloat(((document.activeElement as HTMLInputElement)?.value) || '0');
+                        if (!isNaN(val) && val >= 0 && val <= duration) {
+                          setGoToTime(val);
+                          onSeek(val);
+                        }
+                      }}
+                      className="px-3 py-2 bg-blue-500 text-white font-medium rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={isNaN(goToTime) || goToTime < 0 || goToTime > duration}
+                    >
+                      Go
+                    </button>
+                  </div>
+
+                  {/* In Point Input (when clip selected) */}
+                  {selectedClipId !== null && (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-200">In:</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max={duration}
+                          step="0.1"
+                          value={Math.round(inPoint * 10) / 10}
+                          onChange={(e) => {
+                            const val = parseFloat((e.target as HTMLInputElement).value);
+                            if (!isNaN(val) && val >= 0 && val <= duration) {
+                              setInPoint(val);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              const val = parseFloat((e.target as HTMLInputElement).value);
+                              if (!isNaN(val) && val >= 0 && val <= duration) {
+                                setInPoint(val);
+                                // Update clip in point
+                                updateClipInPoint(val);
+                              }
+                            }
+                          }}
+                          className="w-24 px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                          placeholder="sec"
+                        >
+                        </input>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Out:</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max={duration}
+                          step="0.1"
+                          value={Math.round(outPoint * 10) / 10}
+                          onChange={(e) => {
+                            const val = parseFloat((e.target as HTMLInputElement).value);
+                            if (!isNaN(val) && val >= 0 && val <= duration) {
+                              setOutPoint(val);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              const val = parseFloat((e.target as HTMLInputElement).value);
+                              if (!isNaN(val) && val >= 0 && val <= duration) {
+                                setOutPoint(val);
+                                // Update clip out point
+                                updateClipOutPoint(val);
+                              }
+                            }
+                          }}
+                          className="w-24 px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                          placeholder="sec"
+                        >
+                        </input>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Out Point Input */}
+                  {/* Note: Out point input is already included above when clip is selected */}
+                </div>
               </div>
             </div>
           )}
         </div>
-      )}
+
+        {/* Duration Display - spans all columns on lg and above */}
+        <div className="lg:col-span-3">
+          {videoUrl && duration > 0 && (
+            <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
+              <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400">
+                <span>Current Time:</span>
+                <span className="font-medium text-gray-800 dark:text-gray-100">{formatTimeWithFrames(currentTime)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <span>Total Duration:</span>
+                <span className="font-medium text-gray-800 dark:text-gray-100">{formatTimeWithFrames(duration)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <span>Target Length:</span>
+                <span className="font-medium text-gray-800 dark:text-gray-100">60s - 120s</span>
+              </div>
+              {currentTime > 0 && duration > 0 && (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Progress:</span>
+                    <span className="font-medium text-gray-800 dark:text-gray-100">${Math.round((currentTime / duration) * 100)}%</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-500 dark:bg-blue-400" style={{ width: `${Math.min((currentTime / duration) * 100, 100)}%` }}></div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

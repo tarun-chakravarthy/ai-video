@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { UploadInterface } from "@/components/upload-interface";
 import { StoryTimeline } from "@/components/story-timeline";
 import { EditingTools } from "@/components/editing-tools";
@@ -18,8 +18,14 @@ export function VideoDashboard() {
   const [duration, setDuration] = useState<number>(0);
   const [clips, setClips] = useState<Array<{id: number; start: number; end: number; label: string}>>([]);
 
+  // Ref for VideoPreview to control playback from timeline
+  const videoPreviewRef = useRef<any>(null);
+
   // Get active video object
   const activeVideo = videos.find(v => v.id === activeVideoId) || null;
+
+  // Selected clip state for precision editing
+  const [selectedClipId, setSelectedClipId] = useState<number | null>(null);
 
   // Handle file upload
   const handleFileUpload = async (files: File[]) => {
@@ -80,8 +86,26 @@ export function VideoDashboard() {
     setCurrentTime(0);
   };
 
-  // Clean up object URLs on unmount or when videos change
+  // Clean up object URLs for removed videos and on unmount
+  const videosRef = useRef(videos);
+
   useEffect(() => {
+    // Clean up videos that were removed
+    const prevVideos = videosRef.current;
+    const prevIds = new Set(prevVideos.map(v => v.id));
+    const currentIds = new Set(videos.map(v => v.id));
+
+    // Revoke URLs for videos that were removed
+    prevVideos.forEach(video => {
+      if (!currentIds.has(video.id)) {
+        URL.revokeObjectURL(video.url);
+      }
+    });
+
+    // Update ref for next comparison
+    videosRef.current = videos;
+
+    // Cleanup on unmount
     return () => {
       videos.forEach(video => {
         URL.revokeObjectURL(video.url);
@@ -117,13 +141,10 @@ export function VideoDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-1">
-          <UploadInterface
-            onFileUpload={handleFileUpload}
-            isUploading={isUploading}
-            uploadProgress={uploadProgress}
-          />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="col-span-1 sm:col-span-1 lg:col-span-1">
+          {/* Group 1: UploadInterface and Video Library controls */}
+          <UploadInterface onFileUpload={handleFileUpload} isUploading={isUploading} uploadProgress={uploadProgress} />
           {videos.length > 0 && (
             <div className="mt-4">
               <div className="flex items-center justify-between mb-2">
@@ -166,6 +187,10 @@ export function VideoDashboard() {
               </div>
             </div>
           )}
+        </div>
+
+        <div className="col-span-1 sm:col-span-2 lg:col-span-2">
+          {/* Group 2: StoryTimeline */}
           {activeVideo && (
             <StoryTimeline
               videoUrl={activeVideo.url}
@@ -173,17 +198,26 @@ export function VideoDashboard() {
               duration={activeVideo.duration}
               onSeek={(time: number) => {
                 setCurrentTime(time);
+                // Also update the video preview's current time if we have a ref
+                if (videoPreviewRef.current) {
+                  videoPreviewRef.current.seek(time);
+                }
               }}
               clips={clips}
               onClipChange={(newClips) => setClips(newClips)}
+              videoRef={videoPreviewRef}
+              selectedClipId={selectedClipId}
+              onSelectedClipChange={setSelectedClipId}
             />
           )}
         </div>
 
-        <div className="lg:col-span-2">
+        <div className="col-span-1 sm:col-span-2 lg:col-span-2">
+          {/* Group 3: VideoPreview, EditingTools, AISuggestions, ExportControls */}
           {activeVideo && (
             <>
               <VideoPreview
+                ref={videoPreviewRef}
                 videoUrl={activeVideo.url}
                 onTimeUpdate={handleTimeUpdate}
                 onEnded={handleEnded}
@@ -194,7 +228,15 @@ export function VideoDashboard() {
                 duration={activeVideo.duration}
                 onSeek={(time: number) => {
                   setCurrentTime(time);
+                  // Also update the video preview's current time if we have a ref
+                  if (videoPreviewRef.current) {
+                    videoPreviewRef.current.seek(time);
+                  }
                 }}
+                clips={clips}
+                onClipChange={setClips}
+                selectedClipId={selectedClipId}
+                onSelectedClipChange={setSelectedClipId}
               />
               <AISuggestions
                 videoUrl={activeVideo.url}
@@ -206,9 +248,7 @@ export function VideoDashboard() {
                   setClips(analyzedClips);
                 }}
               />
-              <ExportControls
-                videoUrl={activeVideo.url}
-              />
+              <ExportControls videoUrl={activeVideo.url} />
             </>
           )}
           {!activeVideo && videos.length > 0 && (

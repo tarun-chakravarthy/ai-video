@@ -1,11 +1,17 @@
+import React from 'react';
 import { Play, Pause, Square, Expand, Volume2, Settings2 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useImperativeHandle } from "react";
 
-export function VideoPreview({ videoUrl, onTimeUpdate, onEnded }: {
+interface VideoPreviewProps {
   videoUrl?: string | null;
-  onTimeUpdate?: (currentTime: number, duration: number) => void;
-  onEnded?: () => void;
-}) {
+  onTimeUpdate?: ((currentTime: number, duration: number) => void) | undefined;
+  onEnded?: (() => void) | undefined;
+}
+
+export const VideoPreview = React.forwardRef<
+  any,
+  VideoPreviewProps
+>(({ videoUrl, onTimeUpdate, onEnded }, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -67,10 +73,44 @@ export function VideoPreview({ videoUrl, onTimeUpdate, onEnded }: {
     }
   };
 
+  const play = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+    try {
+      await video.play();
+      setIsPlaying(true);
+    } catch (error) {
+      console.error('Playback error:', error);
+    }
+  };
+
+  const pause = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.pause();
+    setIsPlaying(false);
+  };
+
+  const seek = (time: number) => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.currentTime = time;
+    setCurrentTime(time);
+  };
+
+  // Expose imperative methods
+  useImperativeHandle(ref, () => ({
+    play,
+    pause,
+    togglePlay,
+    seek
+  }));
+
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const video = videoRef.current;
     if (!video) return;
     video.currentTime = (parseFloat(e.target.value) / 100) * video.duration;
+    setCurrentTime(video.currentTime);
   };
 
   const requestFullscreen = () => {
@@ -90,7 +130,7 @@ export function VideoPreview({ videoUrl, onTimeUpdate, onEnded }: {
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
       <div className="space-y-4">
         {/* Video Player Container */}
-        <div className="relative w-full h-64 bg-gray-900 dark:bg-gray-100 rounded-lg overflow-hidden">
+        <div className="relative w-full h-48 sm:h-52 lg:h-64 bg-gray-900 dark:bg-gray-100 rounded-lg overflow-hidden">
           {/* Video Element */}
           <video
             ref={videoRef}
@@ -205,4 +245,4 @@ export function VideoPreview({ videoUrl, onTimeUpdate, onEnded }: {
       </div>
     </div>
   );
-}
+});
