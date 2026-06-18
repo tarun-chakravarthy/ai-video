@@ -1,5 +1,6 @@
 import { PlayCircle, Trash2, MoreVertical } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
+import { VideoPreviewHandle } from "./video-preview";
 
 export function StoryTimeline({
   videoUrl,
@@ -18,12 +19,7 @@ export function StoryTimeline({
   onSeek: (time: number) => void;
   clips: Array<{ id: number; start: number; end: number; label: string }>;
   onClipChange: (clips: Array<{ id: number; start: number; end: number; label: string }>) => void;
-  videoRef: React.RefObject<{
-    play: () => Promise<void>;
-    pause: () => void;
-    togglePlay: () => Promise<void>;
-    seek: (time: number) => void;
-  }> | null;
+  videoRef: React.RefObject<VideoPreviewHandle> | null;
   selectedClipId: number | null;
   onSelectedClipChange: (id: number | null) => void;
 }) {

@@ -6,7 +6,8 @@ import { StoryTimeline } from "@/components/story-timeline";
 import { EditingTools } from "@/components/editing-tools";
 import { AISuggestions } from "@/components/ai-suggestions";
 import { ExportControls } from "@/components/export-controls";
-import { VideoPreview } from "@/components/video-preview";
+import { VideoPreview, VideoPreviewHandle } from "@/components/video-preview";
+import { ClipsTable } from "@/components/clips-table";
 import { UploadIcon } from "lucide-react";
 
 export function VideoDashboard() {
@@ -19,7 +20,7 @@ export function VideoDashboard() {
   const [clips, setClips] = useState<Array<{id: number; start: number; end: number; label: string}>>([]);
 
   // Ref for VideoPreview to control playback from timeline
-  const videoPreviewRef = useRef<any>(null);
+  const videoPreviewRef = useRef<VideoPreviewHandle>(null);
 
   // Get active video object
   const activeVideo = videos.find(v => v.id === activeVideoId) || null;
@@ -139,6 +140,32 @@ export function VideoDashboard() {
     }
   }, [activeVideoId, activeVideo]);
 
+  // Handle clip deletion
+  const handleDeleteClip = (clipId: number) => {
+    setClips(prev => prev.filter(clip => clip.id !== clipId));
+    if (selectedClipId === clipId) {
+      setSelectedClipId(null);
+    }
+  };
+
+  // Handle clip duplication
+  const handleDuplicateClip = (clipId: number) => {
+    const clipToDuplicate = clips.find(c => c.id === clipId);
+    if (clipToDuplicate) {
+      const newClip = {
+        ...clipToDuplicate,
+        id: Math.max(...clips.map(c => c.id)) + 1,
+        label: `${clipToDuplicate.label} (Copy)`
+      };
+      setClips(prev => [...prev, newClip]);
+    }
+  };
+
+  // Handle clip editing (for now, just select the clip)
+  const handleEditClip = (clipId: number) => {
+    setSelectedClipId(clipId);
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -205,10 +232,27 @@ export function VideoDashboard() {
               }}
               clips={clips}
               onClipChange={(newClips) => setClips(newClips)}
-              videoRef={videoPreviewRef}
+              videoRef={(videoPreviewRef as React.RefObject<VideoPreviewHandle>) || null}
               selectedClipId={selectedClipId}
               onSelectedClipChange={setSelectedClipId}
             />
+          )}
+        </div>
+
+        <div className="col-span-1 sm:col-span-2 lg:col-span-3">
+          {/* Group 2b: Clips Management Table */}
+          {activeVideo && clips.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-foreground">Clips</h3>
+              <ClipsTable
+                clips={clips}
+                selectedClipId={selectedClipId}
+                onSelectClip={setSelectedClipId}
+                onDeleteClip={handleDeleteClip}
+                onDuplicateClip={handleDuplicateClip}
+                onEditClip={handleEditClip}
+              />
+            </div>
           )}
         </div>
 

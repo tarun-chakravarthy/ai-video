@@ -2,7 +2,10 @@
 
 This document outlines the coding best practices to be followed throughout the project. Adhering to these practices ensures code quality, maintainability, consistency, and accessibility.
 
+> **📋 For Claude/AI Code Generation**: Refer to [`.claude-prompt.md`](./.claude-prompt.md) and [`packages/web/.instructions.md`](packages/web/.instructions.md) for detailed AI-executable guidelines.
+
 ## Table of Contents
+0. [Claude AI Code Guidelines](#claude-ai-code-guidelines)
 1. [TypeScript Practices](#typescript-practices)
 2. [React Practices](#react-practices)
 3. [Styling & Tailwind CSS](#styling--tailwind-css)
@@ -13,6 +16,23 @@ This document outlines the coding best practices to be followed throughout the p
 8. [Documentation & Comments](#documentation--comments)
 9. [Testing](#testing)
 10. [Git & Workflow](#git--workflow)
+
+---
+
+## Claude AI Code Guidelines
+
+When requesting code changes from Claude AI, ensure compliance with:
+
+- **`.claude-prompt.md`** - High-level guidelines for code generation, build requirements, and project structure
+- **`packages/web/.instructions.md`** - Detailed technical requirements specific to the web package
+
+### Key Requirements for Claude-Generated Code:
+- ✅ Must pass `pnpm build` with zero errors
+- ✅ Must have zero TypeScript errors after compilation
+- ✅ Must follow React best practices (no cascading renders)
+- ✅ Must use proper TypeScript typing (no `any` types)
+- ✅ Must not cause hydration mismatches in Next.js
+- ✅ Must clean up side effects (listeners, subscriptions)
 
 ---
 

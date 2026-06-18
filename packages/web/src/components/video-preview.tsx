@@ -2,16 +2,20 @@ import React from 'react';
 import { Play, Pause, Square, Expand, Volume2, Settings2 } from "lucide-react";
 import { useState, useEffect, useRef, useImperativeHandle } from "react";
 
+export interface VideoPreviewHandle {
+  play: () => Promise<void>;
+  pause: () => void;
+  togglePlay: () => Promise<void>;
+  seek: (time: number) => void;
+}
+
 interface VideoPreviewProps {
   videoUrl?: string | null;
   onTimeUpdate?: ((currentTime: number, duration: number) => void) | undefined;
   onEnded?: (() => void) | undefined;
 }
 
-export const VideoPreview = React.forwardRef<
-  any,
-  VideoPreviewProps
->(({ videoUrl, onTimeUpdate, onEnded }, ref) => {
+export const VideoPreview = React.forwardRef<VideoPreviewHandle, VideoPreviewProps>(({ videoUrl, onTimeUpdate, onEnded }, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);

@@ -4,36 +4,43 @@ import { VideoDashboard } from "@/components/video-dashboard";
 import { Menu, X } from "lucide-react";
 
 export default function Home() {
+  // Initialize with default values to avoid hydration mismatch
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // Responsive sidebar based on window width
+  // Sync sidebar state on mount
+  useEffect(() => {
+    const isDesktop = window.innerWidth >= 1024;
+    setIsSidebarOpen(isDesktop);
+  }, []);
+
+  // Sync dark mode on mount
+  useEffect(() => {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setIsDarkMode(prefersDark);
+  }, []);
+
+  // Listen for window resize
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 1024) {
-        // On desktop, we want sidebar to be open (though CSS forces visibility)
         setIsSidebarOpen(true);
       } else {
-        // On mobile, start with sidebar closed
         setIsSidebarOpen(false);
       }
     };
 
-    // Set initial state
-    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Dark mode handling based on system preference
+  // Listen for dark mode preference changes
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = (e: MediaQueryListEvent) => {
       setIsDarkMode(e.matches);
     };
 
-    // Set initial state
-    setIsDarkMode(mediaQuery.matches);
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);

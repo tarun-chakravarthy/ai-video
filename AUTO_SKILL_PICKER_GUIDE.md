@@ -1,5 +1,23 @@
 # Auto Skill Picker Guide: Decision Framework for Agentic AI Development
 
+## Quick Reference for Claude AI Code Generation
+
+**Before requesting code from Claude:**
+- Read [`.claude-prompt.md`](./.claude-prompt.md) - Contains all code generation guidelines
+- Read [`packages/web/.instructions.md`](packages/web/.instructions.md) - Technical specifics
+- Verify `pnpm build` passes before making requests
+- Include project constraints in your prompt
+
+**Expected outcomes from Claude-generated code:**
+- ✅ Zero TypeScript errors
+- ✅ Passes `pnpm build` 
+- ✅ Follows React best practices
+- ✅ Properly typed (no `any`)
+- ✅ No hydration mismatches
+- ✅ Production-ready quality
+
+---
+
 ## Purpose
 This guide serves as an "auto skill picker" - a decision framework to help determine the most appropriate approach when facing uncertainty, conflicts, or confusion during development. It provides structured methods for selecting the right technique, tool, or strategy based on the situation.
 

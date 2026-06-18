@@ -1,5 +1,5 @@
 import { Scissors, Trash2, Zap, Settings, Copy, MoreHorizontal, Clock } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 
 export function EditingTools({
   videoUrl,
@@ -22,11 +22,9 @@ export function EditingTools({
 }) {
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
   const [goToTime, setGoToTime] = useState<number>(0);
-  const [inPoint, setInPoint] = useState<number>(0);
-  const [outPoint, setOutPoint] = useState<number>(0);
   const [isRippleEdit, setIsRippleEdit] = useState<boolean>(false);
 
-  // Compute the current clip's in/out points
+  // Compute the current clip's in/out points directly (no state needed)
   const currentClip = useMemo(() => {
     if (selectedClipId !== null && clips.length > 0) {
       return clips.find(clip => clip.id === selectedClipId);
@@ -34,16 +32,14 @@ export function EditingTools({
     return null;
   }, [selectedClipId, clips]);
 
-  // Only update state when the selected clip changes (not on every clips update)
-  useEffect(() => {
-    if (currentClip) {
-      setInPoint(currentClip.start);
-      setOutPoint(currentClip.end);
-    } else {
-      setInPoint(0);
-      setOutPoint(duration);
-    }
-  }, [currentClip?.id, duration]);
+  // Derive in/out points from current clip or defaults
+  const inPoint = useMemo(() => {
+    return currentClip ? currentClip.start : 0;
+  }, [currentClip]);
+
+  const outPoint = useMemo(() => {
+    return currentClip ? currentClip.end : duration;
+  }, [currentClip, duration]);
 
   const handleSplit = () => {
     if (!videoUrl || duration === 0) return;
@@ -304,14 +300,13 @@ export function EditingTools({
                           onChange={(e) => {
                             const val = parseFloat((e.target as HTMLInputElement).value);
                             if (!isNaN(val) && val >= 0 && val <= duration) {
-                              setInPoint(val);
+                              // Just display the value; actual update happens on Enter or blur
                             }
                           }}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               const val = parseFloat((e.target as HTMLInputElement).value);
                               if (!isNaN(val) && val >= 0 && val <= duration) {
-                                setInPoint(val);
                                 // Update clip in point
                                 updateClipInPoint(val);
                               }
@@ -333,14 +328,13 @@ export function EditingTools({
                           onChange={(e) => {
                             const val = parseFloat((e.target as HTMLInputElement).value);
                             if (!isNaN(val) && val >= 0 && val <= duration) {
-                              setOutPoint(val);
+                              // Just display the value; actual update happens on Enter or blur
                             }
                           }}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               const val = parseFloat((e.target as HTMLInputElement).value);
                               if (!isNaN(val) && val >= 0 && val <= duration) {
-                                setOutPoint(val);
                                 // Update clip out point
                                 updateClipOutPoint(val);
                               }
