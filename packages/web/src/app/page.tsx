@@ -8,17 +8,6 @@ export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // Sync sidebar state on mount
-  useEffect(() => {
-    const isDesktop = window.innerWidth >= 1024;
-    setIsSidebarOpen(isDesktop);
-  }, []);
-
-  // Sync dark mode on mount
-  useEffect(() => {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    setIsDarkMode(prefersDark);
-  }, []);
 
   // Listen for window resize
   useEffect(() => {
