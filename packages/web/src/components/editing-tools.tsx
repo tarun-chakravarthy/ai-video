@@ -33,13 +33,13 @@ export function EditingTools({
       if (clip) {
         setInPoint(clip.start);
         setOutPoint(clip.end);
+        return;
       }
-    } else {
-      // Reset when no clip selected
-      setInPoint(0);
-      setOutPoint(duration);
     }
-  }, [selectedClipId, clips, duration]);
+    // Reset when no clip selected
+    setInPoint(0);
+    setOutPoint(duration);
+  }, [selectedClipId, clips]);
 
   const handleSplit = () => {
     if (!videoUrl || duration === 0) return;

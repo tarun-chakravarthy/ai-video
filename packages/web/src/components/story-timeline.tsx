@@ -1,5 +1,5 @@
 import { PlayCircle, Trash2, MoreVertical } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 export function StoryTimeline({
   videoUrl,
@@ -31,6 +31,19 @@ export function StoryTimeline({
   const [draggingEdge, setDraggingEdge] = useState<'start' | 'end' | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const timelineRef = useRef<HTMLDivElement>(null);
+  
+  // Use refs to capture current values without affecting dependencies
+  const currentTimeRef = useRef(currentTime);
+  const durationRef = useRef(duration);
+  const selectedClipIdRef = useRef(selectedClipId);
+  const clipsRef = useRef(clips);
+  
+  useEffect(() => {
+    currentTimeRef.current = currentTime;
+    durationRef.current = duration;
+    selectedClipIdRef.current = selectedClipId;
+    clipsRef.current = clips;
+  }, [currentTime, duration, selectedClipId, clips]);
 
   // Update playing state based on currentTime changes (simplified)
   useEffect(() => {
@@ -38,90 +51,90 @@ export function StoryTimeline({
       // Simple heuristic: if we're moving forward rapidly, assume playing
       // In a real app, this would come from the video element
     }
-  }, [currentTime, duration]);
+  }, [duration]);
 
   // Handle keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!videoUrl || duration === 0) return;
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (!videoUrl || durationRef.current === 0) return;
 
-      switch (e.key) {
-        case ' ':
-          e.preventDefault();
-          // Toggle play/pause using the videoRef
-          if (videoRef?.current) {
-            videoRef.current.togglePlay().then(() => {
-              setIsPlaying(prev => !prev);
-            }).catch(console.error);
-          }
-          break;
-        case 'ArrowLeft':
-          e.preventDefault();
-          // Seek backward by 0.1 seconds (or 1 frame if we knew fps)
-          const newTime = Math.max(0, currentTime - 0.1);
-          onSeek(newTime);
-          // Also update the video preview if we have a ref
-          if (videoRef?.current) {
-            videoRef.current.seek(newTime);
-          }
-          break;
-        case 'ArrowRight':
-          e.preventDefault();
-          // Seek forward by 0.1 seconds
-          const newTime2 = Math.min(duration, currentTime + 0.1);
-          onSeek(newTime2);
-          // Also update the video preview if we have a ref
-          if (videoRef?.current) {
-            videoRef.current.seek(newTime2);
-          }
-          break;
-        case 'Delete':
-        case 'Backspace':
-          e.preventDefault();
-          if (selectedClipId !== null) {
-            // Delete selected clip
-            onClipChange(clips.filter(clip => clip.id !== selectedClipId));
+    switch (e.key) {
+      case ' ':
+        e.preventDefault();
+        // Toggle play/pause using the videoRef
+        if (videoRef?.current) {
+          videoRef.current.togglePlay().then(() => {
+            setIsPlaying(prev => !prev);
+          }).catch(console.error);
+        }
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        // Seek backward by 0.1 seconds (or 1 frame if we knew fps)
+        const newTime = Math.max(0, currentTimeRef.current - 0.1);
+        onSeek(newTime);
+        // Also update the video preview if we have a ref
+        if (videoRef?.current) {
+          videoRef.current.seek(newTime);
+        }
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        // Seek forward by 0.1 seconds
+        const newTime2 = Math.min(durationRef.current, currentTimeRef.current + 0.1);
+        onSeek(newTime2);
+        // Also update the video preview if we have a ref
+        if (videoRef?.current) {
+          videoRef.current.seek(newTime2);
+        }
+        break;
+      case 'Delete':
+      case 'Backspace':
+        e.preventDefault();
+        if (selectedClipIdRef.current !== null) {
+          // Delete selected clip
+          onClipChange(clipsRef.current.filter(clip => clip.id !== selectedClipIdRef.current));
+          onSelectedClipChange(null);
+        }
+        break;
+      case 's':
+      case 'S':
+        e.preventDefault();
+        if (selectedClipIdRef.current !== null) {
+          // Split selected clip at currentTime
+          const clipToSplit = clipsRef.current.find(clip => clip.id === selectedClipIdRef.current);
+          if (clipToSplit && currentTimeRef.current > clipToSplit.start && currentTimeRef.current < clipToSplit.end) {
+            // Create two new clips: [start, currentTime] and [currentTime, end]
+            const leftClip = {
+              id: Date.now(),
+              start: clipToSplit.start,
+              end: currentTimeRef.current,
+              label: `${clipToSplit.label} (part 1)`
+            };
+            const rightClip = {
+              id: Date.now() + 1,
+              start: currentTimeRef.current,
+              end: clipToSplit.end,
+              label: `${clipToSplit.label} (part 2)`
+            };
+            // Replace the original clip with the two new ones
+            const newClips = clipsRef.current
+              .filter(clip => clip.id !== selectedClipIdRef.current)
+              .concat(leftClip, rightClip)
+              .sort((a, b) => a.start - b.start);
+            onClipChange(newClips);
             onSelectedClipChange(null);
           }
-          break;
-        case 's':
-        case 'S':
-          e.preventDefault();
-          if (selectedClipId !== null) {
-            // Split selected clip at currentTime
-            const clipToSplit = clips.find(clip => clip.id === selectedClipId);
-            if (clipToSplit && currentTime > clipToSplit.start && currentTime < clipToSplit.end) {
-              // Create two new clips: [start, currentTime] and [currentTime, end]
-              const leftClip = {
-                id: Date.now(),
-                start: clipToSplit.start,
-                end: currentTime,
-                label: `${clipToSplit.label} (part 1)`
-              };
-              const rightClip = {
-                id: Date.now() + 1,
-                start: currentTime,
-                end: clipToSplit.end,
-                label: `${clipToSplit.label} (part 2)`
-              };
-              // Replace the original clip with the two new ones
-              const newClips = clips
-                .filter(clip => clip.id !== selectedClipId)
-                .concat(leftClip, rightClip)
-                .sort((a, b) => a.start - b.start);
-              onClipChange(newClips);
-              onSelectedClipChange(null);
-            }
-          }
-          break;
-        default:
-          break;
-      }
-    };
+        }
+        break;
+      default:
+        break;
+    }
+  }, [videoUrl, onSeek, onClipChange, onSelectedClipChange, videoRef]);
 
+  useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [videoUrl, duration, currentTime, onSeek, onClipChange, clips, selectedClipId, isPlaying, videoRef]);
+  }, [handleKeyDown]);
 
   const handleClipClick = (clipId: number) => {
     onSelectedClipChange(clipId);
