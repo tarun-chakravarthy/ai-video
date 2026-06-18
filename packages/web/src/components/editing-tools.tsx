@@ -99,7 +99,7 @@ export function EditingTools({
 
     const updatedClip = { ...clip, start: time };
 
-    let updatedClips = [...clips];
+    const updatedClips = [...clips];
     updatedClips[clipIndex] = updatedClip;
 
     // If ripple edit is enabled, shift subsequent clips
@@ -132,7 +132,7 @@ export function EditingTools({
 
     const updatedClip = { ...clip, end: time };
 
-    let updatedClips = [...clips];
+    const updatedClips = [...clips];
     updatedClips[clipIndex] = updatedClip;
 
     // If ripple edit is enabled, shift subsequent clips
